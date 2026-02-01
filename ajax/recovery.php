@@ -1,8 +1,37 @@
 <?php
 	session_start();
 	include("../settings/connect_datebase.php");
-	
-	$login = $_POST['login'];
+
+	function decryptAES($encryptedData, $key){
+		$data = base64_decode($encryptedData);
+
+		if($data=== false||strlen($data)<17){
+			error_log('а почта уникум, работать не будем');
+			return false;
+		}
+
+		$iv = substr($data, 0, 16);
+
+		$encrypted = substr($data, 16);
+
+		$keyHash = md5($key);
+		$keyBytes = hex2bin($keyHash);
+
+		$decrypted = openssl_decrypt(
+			$encrypted,
+			'aes-128-cbc',
+			$keyBytes,
+			OPENSSL_RAW_DATA,
+			$iv
+		);
+
+		return $decrypted;
+	}
+
+	$secretKey = "qwnkidokgmsdhkuenfsdj";
+	$login_encrypted = $_POST['login'] ?? '';
+
+	$login = decryptAES($login_encrypted, $secretKey);
 	
 	// ищем пользователя
 	$query_user = $mysqli->query("SELECT * FROM `users` WHERE `login`='".$login."';");
@@ -42,5 +71,5 @@
 		//mail($login, 'Безопасность web-приложений КГАПОУ "Авиатехникум"', "Ваш пароль был только что изменён. Новый пароль: ".$password);
 	}
 	
-	echo $id;
+	echo md5($id);
 ?>
